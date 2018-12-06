@@ -34,7 +34,8 @@ The commands are:
    grep                 Filter GFF3 features based on regular expressions
    rc                   Convert GFF3 features to their reverse complement
    offset               Shift GFF3 features by a constant offset
-   restart              For circular references, reset the GFF record break
+   restart              For circular references, reset the GFF3 record break
+   subgff		get features by region of the GFF3
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
    add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record		
 ''')
@@ -238,6 +239,50 @@ The commands are:
             new_attr_string = ";".join(new_attrs)
             gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(gene_string+"\n")
+
+
+        sys.stderr.write("Conversion complete.\n")	
+
+#################
+#################
+#################
+
+    def subgff(self):
+        parser = argparse.ArgumentParser(
+            description='subcommand:subgff get features by region of the GFF3')
+        requiredNamed = parser.add_argument_group('required named arguments')
+        requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to get regions from",required=True)
+        requiredNamed.add_argument("-r",metavar="range",type=str,default=0,help="Range to filter by",required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        db_path=args.g+".gffutils.db"
+        sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
+        sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
+        sys.stderr.flush()
+        db = gffutils.create_db(args.g,":memory:", force=True,merge_strategy="create_unique")
+        sys.stderr.write("Done converting. Now printing modified GFF3 to stdout...\n")
+        sys.stderr.flush()
+
+        range_re = re.compile("([0-9]+):([0-9]+)")
+        range_result = range_re.search(args.r)
+        if range_resule == None:
+            sys.stderr.write("subgff: Couldn't parse region string.")
+            sys.stderr.flush()
+            exit()
+        subgff_start = int(range_result.group(1))        
+        subgff_end = int(range_result.group(2))
+
+        assert subgff_start < subgff_end        
+
+        sys.stdout.write("##gff-version 3\n")
+        for f in db.all_features():
+            if f.start > subgff_start and f.end < subgff_end:
+                new_attrs = []
+                for a in f.attributes:
+                    new_attrs.append(a+"="+f.attributes[a][0])
+                    new_attr_string = ";".join(new_attrs)
+                gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+                sys.stdout.write(gene_string+"\n")
 
 
         sys.stderr.write("Conversion complete.\n")	
