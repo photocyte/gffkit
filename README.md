@@ -1,6 +1,8 @@
 # gffkit
 A small lightweight toolkit for common manipulations on GFF3 files
 
+## Usage
+
 ```
 usage: gffkit.py <command> [<args>]
 
@@ -15,3 +17,6 @@ The commands are:
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
    add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record
 ```
+
+## Dependencies
+* https://github.com/daler/gffutils
