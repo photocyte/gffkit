@@ -27,15 +27,17 @@ class GffKit(object):
 
     def __init__(self):
         parser = argparse.ArgumentParser(
-            description='A small toolkit for common manipulations with gff files',
+            description='A small toolkit for common manipulations with gff3 files. By default, it prints the transformed gff3 file to the standard out, and prints informational and error messages to the standard error',
             usage='''gffkit.py <command> [<args>]
 
 The commands are:
-   grep                 Filter GFF3 features based on regular expressions
-   rc                   Convert GFF3 features to their reverse complement
+   grep                 Filter GFF3 features based on regular expressions. 
+   sort                 **Not implemented.** Use genometools (https://github.com/genometools/genometools) with 'gt gff3 -tidy -sort -retainids'
+   rc                   Update the extent of GFF3 features to their reverse complement
    offset               Shift GFF3 features by a constant offset
-   restart              For circular references, reset the GFF3 record break
-   subgff		get features by region of the GFF3
+   restart              For circular references, reset the GFF3 record break (see https://github.com/shenwei356/seqkit) 'seqkit restart' for the analogous operation on FASTA files.
+   subgff		get features within a specific subregion
+   add_ids              Add ID lines to features that lack it 
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
    add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record		
 ''')
@@ -233,6 +235,50 @@ The commands are:
             
             if args.name_to_id:
                 f.attributes["Name"] = f.id
+            new_attrs = []
+            for a in f.attributes:
+                new_attrs.append(a+"="+f.attributes[a][0])
+            new_attr_string = ";".join(new_attrs)
+            gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+            sys.stdout.write(gene_string+"\n")
+
+
+        sys.stderr.write("Conversion complete.\n")	
+
+#################
+#################
+#################
+
+    def add_ids(self):
+        parser = argparse.ArgumentParser(
+            description='subcommand:add_ids add ID attributes to the features that don\'t have them')
+        requiredNamed = parser.add_argument_group('required named arguments')
+        requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to offset",required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        db_path=args.g+".gffutils.db"
+        sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
+        sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
+        sys.stderr.flush()
+        db = gffutils.create_db(args.g,":memory:", force=True,merge_strategy="create_unique")
+        sys.stderr.write("Done converting. Now printing modified GFF3 to stdout...\n")
+        sys.stderr.flush()
+
+        sys.stdout.write("##gff-version 3\n")
+        z=0
+        for f in db.all_features():
+            if "ID" not in f.attributes.keys():
+                parentID = list(db.parents(f.id))[0].id
+                if f.strand == "+":
+                    siblings = list(db.children(parentID, featuretype=f.featuretype, order_by='start'))
+                elif f.strand == "-":
+                    siblings = list(db.children(parentID, featuretype=f.featuretype, order_by='end', reverse=True))
+                siblingsTotal = len(siblings)
+                featureIndex = siblings.index(f)+1
+                f.attributes["ID"] = parentID+"_"+f.featuretype+str(featureIndex)
+            ##if args.name_to_id:
+            ##    f.attributes["Name"] = f.id
+       
             new_attrs = []
             for a in f.attributes:
                 new_attrs.append(a+"="+f.attributes[a][0])
