@@ -1,5 +1,5 @@
 # gffkit
-A small lightweight toolkit for common manipulations on GFF3 files. Inspired by [seqkit](https://github.com/shenwei356/seqkit) (but clearly not as well written)
+A lightweight python toolkit for common manipulations on GFF3 files. Inspired by [seqkit](https://github.com/shenwei356/seqkit) (but clearly not as well written)
 
 ## Usage
 
