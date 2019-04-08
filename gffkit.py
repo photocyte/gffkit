@@ -161,13 +161,14 @@ The commands are:
             description='subcommand:rc Convert GFF features to their reverse complement')
         # NOT prefixing the argument with -- means it's not optional
         requiredNamed = parser.add_argument_group('required named arguments')
-        requiredNamed.add_argument("-g",required=True,help="The path to the GFF3 file to reverse complement")
-        requiredNamed.add_argument("-f",required=True,help="The path to the FASTA file to get record lengths from")
+        requiredNamed.add_argument("-g",metavar="<GFF3_FILE>",required=True,help="The path to the GFF3 file to reverse complement")
+        requiredNamed.add_argument("-f",metavar="<FASTA_FILE>",required=True,help="The path to the FASTA file to get record lengths from")
         parser.add_argument("--name_to_id",default=False,action='store_true',help="Workaround.  Set the name attribute to the ID attribute")
+        parser.add_argument("--add_rc",default=False,action='store_true',help="Add '_rc' to the end of the chrom IDs, used for chrom id matching and feature modification")
         args = parser.parse_args(sys.argv[2:])
 
         ##print 'Running git fetch, repository=%s' % args.repository
-
+      
         db_path=args.g+".gffutils.db"
         sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
         sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
@@ -176,6 +177,9 @@ The commands are:
         sys.stderr.write("Done converting. Now printing modified GFF3 to stdout...\n")
         sys.stderr.flush()
 
+        errorOccurances = dict()
+        errorOccurances[1] = 0
+
         reference_lengths = dict()
         handle = Bio.SeqIO.parse(args.f,"fasta")
         for record in handle:
@@ -183,22 +187,40 @@ The commands are:
 
         sys.stdout.write("##gff-version 3\n")
         for f in db.all_features():
+
+            new_attrs = []
+            for a in f.attributes:
+                 new_attrs.append(a+"="+f.attributes[a][0].replace("=",":")) ##Replacement because genome tools doesn't like extra '='
+            new_attr_string = ";".join(new_attrs)
+
+            if args.add_rc == True:
+                f.chrom += '_rc'
+
+            if f.chrom not in reference_lengths.keys():
+                if errorOccurances[1] < 10:
+                    sys.stderr.write("Warning: feature chrom "+f.chrom+" is not in fasta file. printing feature without modification\n")
+                elif errorOccurances[1] == 10:
+                    sys.stderr.write("Warning: (silencing rest of warnings)\n")
+                if args.add_rc == True:
+                    f.chrom = f.chrom[:-3] ##If '_rc' is added on to check, have to remove it since this line should be unmodified.
+                gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+                sys.stdout.write(gene_string+"\n")
+                errorOccurances[1] += 1
+                continue
+
             new_start = reference_lengths[f.chrom] - f.start + 1
             new_stop = reference_lengths[f.chrom] - f.stop + 1
             f.start = new_stop
             f.stop = new_start
             if args.name_to_id:
                 f.attributes["Name"] = f.id
-            
+
             if f.strand == "+":
-                 f.strand = "-"
+                f.strand = "-"
             elif f.strand == "-":
-                 f.strand = "+"
-	    
-            new_attrs = []
-            for a in f.attributes:
-                 new_attrs.append(a+"="+f.attributes[a][0])
-            new_attr_string = ";".join(new_attrs)
+                f.strand = "+"
+
+
             gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(gene_string+"\n")
 
