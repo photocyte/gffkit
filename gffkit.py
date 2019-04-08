@@ -52,6 +52,10 @@ The commands are:
         # use dispatch pattern to invoke method with same name
         getattr(self, args.command)()
 
+################################
+################################
+################################
+
     def grep(self):
         parser = argparse.ArgumentParser(
             description='Filter GFF features based on regular expressions')
@@ -355,7 +359,9 @@ The commands are:
 
         sys.stderr.write("Conversion complete.\n")	
 
-#######################
+################################
+################################
+################################
 
     def augustus_gtf_to_gff3(self):
         parser = argparse.ArgumentParser(
@@ -441,9 +447,11 @@ The commands are:
                     transcript_id = splitline[0]+"-"+transcript_id
                 attr_str = "Parent="+transcript_id
                 sys.stdout.write("\t".join(splitline[0:8]+[attr_str])+"\n")               
-############
-###########
-###########
+
+################################
+################################
+################################
+
     def add_name_to_fasta(self):
         parser = argparse.ArgumentParser(
             description='subcommand:add_name_to_fasta Looks up the name from GFF3 & adds it to a fasta record')
