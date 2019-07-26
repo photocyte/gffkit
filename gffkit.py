@@ -31,15 +31,16 @@ class GffKit(object):
             usage='''gffkit.py <command> [<args>]
 
 The commands are:
-   grep                 Filter GFF3 features based on regular expressions. 
+   grep                 Filter GFF3 features based on regular expressions.
    sort                 **Not implemented.** Use genometools (https://github.com/genometools/genometools) with 'gt gff3 -tidy -sort -retainids'
    rc                   Update the extent of GFF3 features to their reverse complement
    offset               Shift GFF3 features by a constant offset
    restart              For circular references, reset the GFF3 record break (see https://github.com/shenwei356/seqkit) 'seqkit restart' for the analogous operation on FASTA files.
    subgff		get features within a specific subregion
-   add_ids              Add ID lines to features that lack it 
+   add_ids              Add ID lines to features that lack it
+   add_locus_tag        Take the ID attibute for a given gene feature and add it as an locus_tag attribute (used for NCBI table2asn_GFF)
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
-   add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record		
+   add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record
 ''')
         parser.add_argument('command', help='Subcommand to run')
         # parse_args defaults to [1:] for args, but you need to
@@ -84,8 +85,8 @@ The commands are:
             handle = gzip.open(args.f,"rU")
             patterns = set()
             for l in handle.readlines():
-                patterns.add(l.strip())            
-		
+                patterns.add(l.strip())
+
         db_path=args.file+".gffutils.db"
         sys.stderr.write("Reading GFF3 file: "+args.file+"\n")
         sys.stderr.write("Coverting to in-memory gffutils sqlite database.\n")
@@ -105,7 +106,7 @@ The commands are:
         forbidden_genes = set()
         forbidden_mRNAs = set()
         genes_to_print = set()
-        mRNAs_to_print = set() 
+        mRNAs_to_print = set()
         if args.t == "exon":
             sys.stderr.write("Warning. The exon mode should only be used for filtering with '-v', as currently the script does not correctly resize mRNAs/genes to reduced exons)\n")
         for e in db.features_of_type("exon"):
@@ -131,7 +132,7 @@ The commands are:
                         forbidden_mRNAs.add(mRNA.id)
 
                 elif (args.v == False and e.id in patterns):
-                    sys.stderr.write("Only mode '-v' is currently supported\n")			
+                    sys.stderr.write("Only mode '-v' is currently supported\n")
                     break
 	##Once all the exons have been examined, print those features that are not forbidden.
         allowed_genes = genes_to_print - forbidden_genes
@@ -172,7 +173,7 @@ The commands are:
         args = parser.parse_args(sys.argv[2:])
 
         ##print 'Running git fetch, repository=%s' % args.repository
-      
+
         db_path=args.g+".gffutils.db"
         sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
         sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
@@ -258,7 +259,7 @@ The commands are:
             new_stop = f.stop + args.i
             f.start = new_start
             f.stop = new_stop
-            
+
             if args.name_to_id:
                 f.attributes["Name"] = f.id
             new_attrs = []
@@ -269,7 +270,7 @@ The commands are:
             sys.stdout.write(gene_string+"\n")
 
 
-        sys.stderr.write("Conversion complete.\n")	
+        sys.stderr.write("Conversion complete.\n")
 
 #################
 #################
@@ -304,7 +305,7 @@ The commands are:
                 f.attributes["ID"] = parentID+"_"+f.featuretype+str(featureIndex)
             ##if args.name_to_id:
             ##    f.attributes["Name"] = f.id
-       
+
             new_attrs = []
             for a in f.attributes:
                 new_attrs.append(a+"="+f.attributes[a][0])
@@ -313,7 +314,43 @@ The commands are:
             sys.stdout.write(gene_string+"\n")
 
 
-        sys.stderr.write("Conversion complete.\n")	
+        sys.stderr.write("Conversion complete.\n")
+
+#################
+#################
+#################
+
+    def add_locus_tag(self):
+        parser = argparse.ArgumentParser(
+            description='subcommand:add_locus_tag Take the ID attibute for a given gene feature and add it as an locus_tag attribute (used for NCBI table2asn_GFF)')
+        requiredNamed = parser.add_argument_group('required named arguments')
+        requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to offset",required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        db_path=args.g+".gffutils.db"
+        sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
+        sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
+        sys.stderr.flush()
+        db = gffutils.create_db(args.g,":memory:", force=True,merge_strategy="create_unique")
+        sys.stderr.write("Done converting. Now printing modified GFF3 to stdout...\n")
+        sys.stderr.flush()
+
+        sys.stdout.write("##gff-version 3\n")
+        z=0
+        for f in db.all_features():
+            new_attrs = []
+            for a in f.attributes:
+                new_attrs.append(a+"="+f.attributes[a][0])
+            if f.featuretype == "gene":
+                f.attributes["locus_tag"] = f.id
+                new_attrs.append("locus_tag="+f.id)
+            else:
+                pass
+            new_attr_string = ";".join(new_attrs)
+            gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+            sys.stdout.write(gene_string+"\n")
+
+        sys.stderr.write("Conversion complete.\n")
 
 #################
 #################
@@ -341,10 +378,10 @@ The commands are:
             sys.stderr.write("subgff: Couldn't parse region string.")
             sys.stderr.flush()
             exit()
-        subgff_start = int(range_result.group(1))        
+        subgff_start = int(range_result.group(1))
         subgff_end = int(range_result.group(2))
 
-        assert subgff_start < subgff_end        
+        assert subgff_start < subgff_end
 
         sys.stdout.write("##gff-version 3\n")
         for f in db.all_features():
@@ -357,7 +394,7 @@ The commands are:
                 sys.stdout.write(gene_string+"\n")
 
 
-        sys.stderr.write("Conversion complete.\n")	
+        sys.stderr.write("Conversion complete.\n")
 
 ################################
 ################################
@@ -401,7 +438,7 @@ The commands are:
 #NODE_64342589_length_12508_cov_11.070071        AUGUSTUS        start_codon     8752    8754    .       -       0       transcript_id "g2.t1"; gene_id "g2";
 #NODE_64342589_length_12508_cov_11.070071        AUGUSTUS        tss     8945    8945    .       -       .       transcript_id "g2.t1"; gene_id "g2";
 
-        # Based off Jorvis's convert_augustus_to_gff3.py script: 
+        # Based off Jorvis's convert_augustus_to_gff3.py script:
         #   If GTF is detected, let's start by transforming the 9th column into GFF so the
         #   libraries can use it
         #   g1  ->  ID=g1
@@ -428,7 +465,7 @@ The commands are:
                     gene_id = splitline[0]+"-"+gene_id
                 attr_str = "ID="+gene_id
                 sys.stdout.write("\t".join(splitline[0:8]+[attr_str])+"\n")
-            
+
             if splitline[2] == "transcript":
                 splitline[2] = "mRNA" ##GFF3 is mRNA not transcript
                 transcript_match = col8_transcript_regex.search(splitline[8])
@@ -446,7 +483,7 @@ The commands are:
                 if args.make_long_id == True:
                     transcript_id = splitline[0]+"-"+transcript_id
                 attr_str = "Parent="+transcript_id
-                sys.stdout.write("\t".join(splitline[0:8]+[attr_str])+"\n")               
+                sys.stdout.write("\t".join(splitline[0:8]+[attr_str])+"\n")
 
 ################################
 ################################
@@ -476,7 +513,7 @@ The commands are:
                 pass
             sys.stdout.write(str(db[record.id])+'\n')
 
-        sys.stderr.write("Renaming complete.\n")	
+        sys.stderr.write("Renaming complete.\n")
 
 
 
