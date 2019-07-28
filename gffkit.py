@@ -361,7 +361,7 @@ The commands are:
             description='subcommand:subgff get features by region of the GFF3')
         requiredNamed = parser.add_argument_group('required named arguments')
         requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to get regions from",required=True)
-        requiredNamed.add_argument("-r",metavar="range",type=str,default=0,help="Range to filter by",required=True)
+        requiredNamed.add_argument("-r",metavar="range",type=str,default=0,help="Range to filter by, colon delimited. E.g. 3400:3900",required=True)
         args = parser.parse_args(sys.argv[2:])
 
         db_path=args.g+".gffutils.db"
@@ -374,7 +374,7 @@ The commands are:
 
         range_re = re.compile("([0-9]+):([0-9]+)")
         range_result = range_re.search(args.r)
-        if range_resule == None:
+        if range_result == None:
             sys.stderr.write("subgff: Couldn't parse region string.")
             sys.stderr.flush()
             exit()
