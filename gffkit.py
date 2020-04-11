@@ -11,12 +11,12 @@ import re
 import gzip
 
 try:
-    gffutils_version = pkg_resources.get_distribution("gffutils").version
+    gffutils_version = pkg_resources.get_distribution("gffutils").version.split(".")[1]
 except:
     print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
     exit()
 
-if float(gffutils_version) >= 0.899:
+if float("0."+gffutils_version) >= 0.899:
         import gffutils
 else:
         print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
@@ -362,6 +362,7 @@ The commands are:
         requiredNamed = parser.add_argument_group('required named arguments')
         requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to get regions from",required=True)
         requiredNamed.add_argument("-r",metavar="range",type=str,default=0,help="Range to filter by, colon delimited. E.g. 3400:3900",required=True)
+        requiredNamed.add_argument("-x",default=False,action='store_true',help="Reset coordinate numbering so that range[0] = 1")
         args = parser.parse_args(sys.argv[2:])
 
         db_path=args.g+".gffutils.db"
@@ -383,6 +384,7 @@ The commands are:
 
         assert subgff_start < subgff_end
 
+
         sys.stdout.write("##gff-version 3\n")
         for f in db.all_features():
             if f.start > subgff_start and f.end < subgff_end:
@@ -390,6 +392,9 @@ The commands are:
                 for a in f.attributes:
                     new_attrs.append(a+"="+f.attributes[a][0])
                     new_attr_string = ";".join(new_attrs)
+                if args.x == True:
+                    f.start = f.start - subgff_start + 1
+                    f.end = f.end - subgff_start + 1
                 gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
                 sys.stdout.write(gene_string+"\n")
 
