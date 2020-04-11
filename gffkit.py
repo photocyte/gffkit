@@ -16,7 +16,7 @@ except:
     print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
     exit()
 
-if float("0."+gffutils_version) >= 0.899:
+if float(gffutils_version) >= 8:
         import gffutils
 else:
         print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
