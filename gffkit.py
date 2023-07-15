@@ -346,8 +346,8 @@ The commands are:
                 if a == "ID":
                     continue
                 else:
-                new_attrs.append(a+"="+f.attributes[a][0])
-            new_attr_string = ";".join(new_attrs)
+                    new_attrs.append(a+"="+f.attributes[a][0])
+                    new_attr_string = ";".join(new_attrs)
             gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(gene_string+"\n")
 
