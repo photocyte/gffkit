@@ -38,6 +38,7 @@ The commands are:
    restart              For circular references, reset the GFF3 record break (see https://github.com/shenwei356/seqkit) 'seqkit restart' for the analogous operation on FASTA files.
    subgff		get features within a specific subregion
    add_ids              Add ID lines to features that lack it
+   remove_ids           Remove ID lines from specificied features
    add_locus_tag        Take the ID attibute for a given gene feature and add it as an locus_tag attribute (used for NCBI table2asn_GFF)
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
    add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record
@@ -313,6 +314,42 @@ The commands are:
             gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(gene_string+"\n")
 
+
+        sys.stderr.write("Conversion complete.\n")
+
+#################
+#################
+#################
+
+    def remove_ids(self):
+        parser = argparse.ArgumentParser(
+            description='subcommand:Remove ID lines from specificied features')
+        requiredNamed = parser.add_argument_group('required named arguments')
+        requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to offset",required=True)
+        requiredNamed.add_argument("-t",metavar="gene",help="The GFF feature type to remove IDs from",required=True)
+        args = parser.parse_args(sys.argv[2:])
+
+        db_path=args.g+".gffutils.db"
+        sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
+        sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
+        sys.stderr.flush()
+        db = gffutils.create_db(args.g,":memory:", force=True,merge_strategy="create_unique")
+        sys.stderr.write("Done converting. Now printing modified GFF3 to stdout...\n")
+        sys.stderr.flush()
+
+        sys.stdout.write("##gff-version 3\n")
+        z=0
+        for f in db.features_of_type(args.t, order_by='start')
+
+            new_attrs = []
+            for a in f.attributes:
+                if a == "ID":
+                    continue
+                else:
+                new_attrs.append(a+"="+f.attributes[a][0])
+            new_attr_string = ";".join(new_attrs)
+            gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+            sys.stdout.write(gene_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
 
