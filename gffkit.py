@@ -339,7 +339,7 @@ The commands are:
 
         sys.stdout.write("##gff-version 3\n")
         z=0
-        for f in db.features_of_type(args.t, order_by='start')
+        for f in db.features_of_type(args.t, order_by='start'):
 
             new_attrs = []
             for a in f.attributes:
