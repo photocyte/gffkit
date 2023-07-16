@@ -339,15 +339,14 @@ The commands are:
 
         sys.stdout.write("##gff-version 3\n")
         z=0
-        for f in db.features_of_type(args.t, order_by='start'):
+        for f in db.all_features():
 
             new_attrs = []
             for a in f.attributes:
-                if a == "ID":
+                if a == "ID" and f.featuretype == args.t:
                     continue
-                else:
-                    new_attrs.append(a+"="+f.attributes[a][0])
-                    new_attr_string = ";".join(new_attrs)
+                new_attrs.append(a+"="+f.attributes[a][0])
+            new_attr_string = ";".join(new_attrs)
             gene_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(gene_string+"\n")
 
