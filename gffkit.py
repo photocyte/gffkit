@@ -4,24 +4,14 @@
 
 import argparse
 import sys
-import pkg_resources
 import Bio
 import Bio.SeqIO
 import re
 import gzip
+import importlib
+import gffutils
 
-try:
-    gffutils_version = pkg_resources.get_distribution("gffutils").version.split(".")[1]
-except:
-    print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
-    exit()
-
-if float(gffutils_version) >= 8:
-        import gffutils
-else:
-        print("This script requires gffutils version >= 0.9. See http://daler.github.io/gffutils")
-        exit()
-
+importlib.import_module("gffutils")
 
 class GffKit(object):
 
@@ -579,19 +569,20 @@ The commands are:
         parent_id_to_start_end = dict()
         sys.stdout.write("##gff-version 3\n")
         for f in db.all_features():
+            new_attrs = []
             for a in f.attributes:
                 new_attrs.append(a+"="+f.attributes[a][0])
                 new_attr_string = ";".join(new_attrs)
                 if a == "Parent":
-                    if a not in parent_id_to_start_end.keys():
-                        parent_id_to_start_end[f.attributes[a]] = [f.start,f.end,f.chrom,f.source,f.strand] 
+                    parent_id = f.attributes[a][0]
+                    if parent_id not in parent_id_to_start_end.keys():
+                        parent_id_to_start_end[parent_id] = [f.start,f.end,f.chrom,f.source,f.strand] 
                     else:
-                        if f.start < parent_id_to_start_end[f.attributes[a]][0]:
-                            parent_id_to_start_end[f.attributes[a]][0] = f.start
-                        if f.end > parent_id_to_start_end[f.attributes[a]][1]:
-                            parent_id_to_start_end[f.attributes[a]][1] = f.end
-            
-            feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+                        if f.start < parent_id_to_start_end[parent_id][0]:
+                            parent_id_to_start_end[parent_id][0] = f.start
+                        if f.end > parent_id_to_start_end[parent_id][1]:
+                            parent_id_to_start_end[parent_id][1] = f.end
+            feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.end),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(feature_string+"\n")
 
         for k in parent_id_to_start_end:
@@ -600,8 +591,10 @@ The commands are:
             chrom = parent_id_to_start_end[k][2]
             source = parent_id_to_start_end[k][3]
             strand = parent_id_to_start_end[k][4]
+            phase = "."
             ##TODO: Make the 'gene' thing, a argparse parameter
-            feature_string = '\t'.join([chrom,source,'gene',str(start),str(end),'0.0',f.strand,'-','ID='+k])
+            feature_string = '\t'.join([chrom,source,'gene',str(start),str(end),'0.0',f.strand,phase,'ID='+k])
+            sys.stdout.write(feature_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
 
