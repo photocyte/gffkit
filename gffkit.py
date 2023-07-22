@@ -42,6 +42,7 @@ The commands are:
    add_locus_tag        Take the ID attibute for a given gene feature and add it as an locus_tag attribute (used for NCBI table2asn_GFF)
    augustus_gtf_to_gff3 Convert augustus gtf format to GFF3
    add_name_to_fasta    Looks up the Name attribute from GFF3 & adds it to a fasta record
+   add_parent_features   Adds a parent feature to a GFF3 file. Useful for adding a gene feature to a GFF3 file that only has mRNA features.
 ''')
         parser.add_argument('command', help='Subcommand to run')
         # parse_args defaults to [1:] for args, but you need to
@@ -555,6 +556,54 @@ The commands are:
             sys.stdout.write(str(db[record.id])+'\n')
 
         sys.stderr.write("Renaming complete.\n")
+
+################################
+################################
+################################
+
+    def add_parent_features(self):
+        parser = argparse.ArgumentParser(
+            description='subcommand:add_parent_features Adds a parent feature to a GFF3 file. Useful for adding a gene feature to a GFF3 file that only has mRNA features.')
+        requiredNamed = parser.add_argument_group('required named arguments')
+        requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to parse",required=True)
+        args = parser.parse_args(sys.argv[2:])
+        sys.stderr.write("subcommand incomplete. exiting...+\n")
+        db_path=args.g+".gffutils.db"
+        sys.stderr.write("Reading GFF3 file: "+args.g+"\n")
+        sys.stderr.write("Coverting to in memory gffutils sqlite database\n")
+        sys.stderr.flush()
+        db = gffutils.create_db(args.g,":memory:", force=True,merge_strategy="create_unique")
+        sys.stderr.write("Done converting\n")
+        sys.stderr.flush()
+
+        parent_id_to_start_end = dict()
+        sys.stdout.write("##gff-version 3\n")
+        for f in db.all_features():
+            for a in f.attributes:
+                new_attrs.append(a+"="+f.attributes[a][0])
+                new_attr_string = ";".join(new_attrs)
+                if a == "Parent":
+                    if a not in parent_id_to_start_end.keys():
+                        parent_id_to_start_end[f.attributes[a]] = [f.start,f.end,f.chrom,f.source,f.strand] 
+                    else:
+                        if f.start < parent_id_to_start_end[f.attributes[a]][0]:
+                            parent_id_to_start_end[f.attributes[a]][0] = f.start
+                        if f.end > parent_id_to_start_end[f.attributes[a]][1]:
+                            parent_id_to_start_end[f.attributes[a]][1] = f.end
+            
+            feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.stop),f.score,f.strand,f.frame,new_attr_string])
+            sys.stdout.write(feature_string+"\n")
+
+        for k in parent_id_to_start_end:
+            start = parent_id_to_start_end[k][0]
+            end = parent_id_to_start_end[k][1]
+            chrom = parent_id_to_start_end[k][2]
+            source = parent_id_to_start_end[k][3]
+            strand = parent_id_to_start_end[k][4]
+            ##TODO: Make the 'gene' thing, a argparse parameter
+            feature_string = '\t'.join([chrom,source,'gene',str(start),str(end),'0.0',f.strand,'-','ID='+k])
+
+        sys.stderr.write("Conversion complete.\n")
 
 
 
