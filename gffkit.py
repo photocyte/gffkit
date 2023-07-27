@@ -597,18 +597,18 @@ The commands are:
             sys.stdout.write(feature_string+"\n")
 
         for k in parent_id_to_start_end:
-            start = parent_id_to_start_end[k][0]
-            end = parent_id_to_start_end[k][1]
-            chrom = parent_id_to_start_end[k][2]
-            source = parent_id_to_start_end[k][3]
-            strand = parent_id_to_start_end[k][4]
+            p_start = parent_id_to_start_end[k][0]
+            p_end = parent_id_to_start_end[k][1]
+            p_chrom = parent_id_to_start_end[k][2]
+            p_source = parent_id_to_start_end[k][3]
+            p_strand = parent_id_to_start_end[k][4]
             phase = "."
             feature_type = args.feature_type 
             feature_id = k
             if not args.no_truncate:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                 feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-            feature_string = '\t'.join([chrom,source,feature_type,str(start),str(end),'0.0',f.strand,phase,'ID='+feature_id])
+            feature_string = '\t'.join([p_chrom,p_source,feature_type,str(p_start),str(p_end),'1337.1337',p_strand,phase,'ID='+feature_id])
             sys.stdout.write(feature_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
