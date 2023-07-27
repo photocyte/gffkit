@@ -584,6 +584,15 @@ The commands are:
                             parent_id_to_start_end[parent_id][0] = f.start
                         if f.end > parent_id_to_start_end[parent_id][1]:
                             parent_id_to_start_end[parent_id][1] = f.end
+
+            if f.featuretype.upper() == "MRNA":
+                feature_id = f.id
+                if not args.no_truncate:
+                    ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
+                    feature_id = re.sub('\.t[0-9]+$',"",feature_id)
+                new_attrs.append("Parent="+feature_id)
+                new_attr_string += ";".join(new_attrs)
+
             feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.end),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(feature_string+"\n")
 
