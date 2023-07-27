@@ -556,6 +556,8 @@ The commands are:
             description='subcommand:add_parent_features Adds a parent feature to a GFF3 file. Useful for adding a gene feature to a GFF3 file that only has mRNA features.')
         requiredNamed = parser.add_argument_group('required named arguments')
         requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to parse",required=True)
+        requiredNamed.add_argument("--no_truncate",action='store_true',help="A switch to turn off the behavior of truncating .tN from the putative gene ID",required=False)
+        requiredNamed.add_argument("--feature_type",metavar="example_type",default="gene",help="The type of parent feature to add. Defaults to 'gene'",required=False)
         args = parser.parse_args(sys.argv[2:])
         sys.stderr.write("subcommand incomplete. exiting...+\n")
         db_path=args.g+".gffutils.db"
@@ -592,8 +594,15 @@ The commands are:
             source = parent_id_to_start_end[k][3]
             strand = parent_id_to_start_end[k][4]
             phase = "."
+            feature_type = args.feature_type 
             ##TODO: Make the 'gene' thing, a argparse parameter
-            feature_string = '\t'.join([chrom,source,'gene',str(start),str(end),'0.0',f.strand,phase,'ID='+k])
+            feature_id = k
+            if not args.no_truncate:
+                ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
+                matches = re.findall('\.t[0-9]+',feature_id)
+                if len(matches) == 1:
+                    feature_id = feature_id.replace(matches[0],"")
+            feature_string = '\t'.join([chrom,source,feature_type,str(start),str(end),'0.0',f.strand,phase,'ID='+k])
             sys.stdout.write(feature_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
