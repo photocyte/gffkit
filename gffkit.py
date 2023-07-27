@@ -603,12 +603,13 @@ The commands are:
             p_source = parent_id_to_start_end[k][3]
             p_strand = parent_id_to_start_end[k][4]
             phase = "."
+            score = "1337.1337"
             feature_type = args.feature_type 
             feature_id = k
             if not args.no_truncate:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                 feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-            feature_string = '\t'.join([p_chrom,p_source,feature_type,str(p_start),str(p_end),'1337.1337',p_strand,phase,'ID='+feature_id])
+            feature_string = '\t'.join([p_chrom,p_source,feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
             sys.stdout.write(feature_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
