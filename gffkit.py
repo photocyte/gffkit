@@ -595,14 +595,11 @@ The commands are:
             strand = parent_id_to_start_end[k][4]
             phase = "."
             feature_type = args.feature_type 
-            ##TODO: Make the 'gene' thing, a argparse parameter
             feature_id = k
             if not args.no_truncate:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
-                matches = re.findall('\.t[0-9]+',feature_id)
-                if len(matches) == 1:
-                    feature_id = feature_id.replace(matches[0],"")
-            feature_string = '\t'.join([chrom,source,feature_type,str(start),str(end),'0.0',f.strand,phase,'ID='+k])
+                feature_id = re.sub('\.t[0-9]+$',"",feature_id)
+            feature_string = '\t'.join([chrom,source,feature_type,str(start),str(end),'0.0',f.strand,phase,'ID='+feature_id])
             sys.stdout.write(feature_string+"\n")
 
         sys.stderr.write("Conversion complete.\n")
