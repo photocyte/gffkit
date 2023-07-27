@@ -590,8 +590,8 @@ The commands are:
                 if not args.no_truncate:
                     ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                     feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-                new_attrs.append("Parent="+feature_id)
-                new_attr_string += ";".join(new_attrs)
+                parent_attr_str = "Parent="+feature_id
+                new_attr_string = new_attr_string+";"+parent_attr_str
 
             feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.end),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(feature_string+"\n")
