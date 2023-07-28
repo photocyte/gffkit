@@ -596,6 +596,7 @@ The commands are:
             feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.end),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(feature_string+"\n")
 
+        already_printed_lines = []
         for k in parent_id_to_start_end:
             p_start = parent_id_to_start_end[k][0]
             p_end = parent_id_to_start_end[k][1]
@@ -610,7 +611,11 @@ The commands are:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                 feature_id = re.sub('\.t[0-9]+$',"",feature_id)
             feature_string = '\t'.join([p_chrom,p_source,feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
-            sys.stdout.write(feature_string+"\n")
+            if feature_string not in already_printed_lines:
+                sys.stdout.write(feature_string+"\n")
+                already_printed_lines.append(feature_string)
+            else:
+                sys.stderr.write("Warning: "+feature_string+" already printed. Skipping...\n")
 
         sys.stderr.write("Conversion complete.\n")
 
