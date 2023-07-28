@@ -557,7 +557,7 @@ The commands are:
         requiredNamed = parser.add_argument_group('required named arguments')
         requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to parse",required=True)
         requiredNamed.add_argument("--no_truncate",action='store_true',help="A switch to turn off the behavior of truncating .tN from the putative gene ID",required=False)
-        requiredNamed.add_argument("--feature_type",metavar="example_type",default="gene",help="The type of parent feature to add. Defaults to 'gene'",required=False)
+        requiredNamed.add_argument("--parent_feature_type",metavar="example_type",default="gene",help="The type of parent feature to add. Defaults to 'gene'",required=False)
         args = parser.parse_args(sys.argv[2:])
         sys.stderr.write("subcommand incomplete. exiting...+\n")
         db_path=args.g+".gffutils.db"
@@ -606,12 +606,12 @@ The commands are:
             p_strand = parent_id_to_start_end[k][4]
             phase = "."
             score = "1337.1337"
-            feature_type = args.feature_type 
+            p_feature_type = args.parent_feature_type 
             feature_id = k
             if not args.no_truncate:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                 feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-            feature_string = '\t'.join([p_chrom,source,feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
+            feature_string = '\t'.join([p_chrom,source,p_feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
             if feature_string not in already_printed_lines:
                 sys.stdout.write(feature_string+"\n")
                 already_printed_lines.append(feature_string)
