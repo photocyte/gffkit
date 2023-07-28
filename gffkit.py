@@ -558,6 +558,7 @@ The commands are:
         requiredNamed.add_argument("-g",metavar="example.gff3",help="The path to the GFF3 file to parse",required=True)
         requiredNamed.add_argument("--no_truncate",action='store_true',help="A switch to turn off the behavior of truncating .tN from the putative gene ID",required=False)
         requiredNamed.add_argument("--parent_feature_type",metavar="example_type",default="gene",help="The type of parent feature to add. Defaults to 'gene'",required=False)
+        requiredNamed.add_argument("--child_feature_type",metavar="example_type",default="mRNA",help="The type of parent feature to add. Defaults to 'mRNA'",required=False)
         args = parser.parse_args(sys.argv[2:])
         sys.stderr.write("subcommand incomplete. exiting...+\n")
         db_path=args.g+".gffutils.db"
@@ -572,26 +573,32 @@ The commands are:
         sys.stdout.write("##gff-version 3\n")
         for f in db.all_features():
             new_attrs = []
+
             for a in f.attributes:
+                ##All feature types need this to happen, as this enables the right attributes to make it out.
                 new_attrs.append(a+"="+f.attributes[a][0])
                 new_attr_string = ";".join(new_attrs)
-                if a == "Parent":
-                    parent_id = f.attributes[a][0]
-                    if parent_id not in parent_id_to_start_end.keys():
-                        parent_id_to_start_end[parent_id] = [f.start,f.end,f.chrom,f.source,f.strand] 
-                    else:
-                        if f.start < parent_id_to_start_end[parent_id][0]:
-                            parent_id_to_start_end[parent_id][0] = f.start
-                        if f.end > parent_id_to_start_end[parent_id][1]:
-                            parent_id_to_start_end[parent_id][1] = f.end
 
-            if f.featuretype.upper() == "MRNA":
+            if f.featuretype.upper().strip() == args.child_feature_type.upper().strip():
+                ##Only run on the designated child feature type, i.e. mRNA
+                for a in f.attributes:
+                    if a == "Parent":
+                        parent_id = f.attributes[a][0]
+                        if parent_id not in parent_id_to_start_end.keys():
+                            parent_id_to_start_end[parent_id] = [f.start,f.end,f.chrom,f.source,f.strand] 
+                        else:
+                            if f.start < parent_id_to_start_end[parent_id][0]:
+                                parent_id_to_start_end[parent_id][0] = f.start
+                            if f.end > parent_id_to_start_end[parent_id][1]:
+                                parent_id_to_start_end[parent_id][1] = f.end
+
                 feature_id = f.id
-                if not args.no_truncate:
-                    ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
-                    feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-                parent_attr_str = "Parent="+feature_id
-                new_attr_string = new_attr_string+";"+parent_attr_str
+                if "Parent" not in f.attributes.keys():
+                    if not args.no_truncate:
+                        ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
+                        feature_id = re.sub('\.t[0-9]+$',"",feature_id)
+                    parent_attr_str = "Parent="+feature_id
+                    new_attr_string = new_attr_string+";"+parent_attr_str
 
             feature_string = '\t'.join([f.chrom,f.source,f.featuretype,str(f.start),str(f.end),f.score,f.strand,f.frame,new_attr_string])
             sys.stdout.write(feature_string+"\n")
