@@ -602,6 +602,7 @@ The commands are:
             p_end = parent_id_to_start_end[k][1]
             p_chrom = parent_id_to_start_end[k][2]
             p_source = parent_id_to_start_end[k][3]
+            source = "gffkit"
             p_strand = parent_id_to_start_end[k][4]
             phase = "."
             score = "1337.1337"
@@ -610,7 +611,7 @@ The commands are:
             if not args.no_truncate:
                 ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
                 feature_id = re.sub('\.t[0-9]+$',"",feature_id)
-            feature_string = '\t'.join([p_chrom,p_source,feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
+            feature_string = '\t'.join([p_chrom,source,feature_type,str(p_start),str(p_end),score,p_strand,phase,'ID='+feature_id])
             if feature_string not in already_printed_lines:
                 sys.stdout.write(feature_string+"\n")
                 already_printed_lines.append(feature_string)
