@@ -584,6 +584,9 @@ The commands are:
                 for a in f.attributes:
                     if a == "Parent":
                         parent_id = f.attributes[a][0]
+                        if not args.no_truncate:
+                            ##The intention of this is to remove the .tN type suffixes from mRNA IDs, so they can be used with gene IDs.
+                            parent_id = re.sub('\.t[0-9]+$',"",parent_id)
                         if parent_id not in parent_id_to_start_end.keys():
                             parent_id_to_start_end[parent_id] = [f.start,f.end,f.chrom,f.source,f.strand] 
                         else:
