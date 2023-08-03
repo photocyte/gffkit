@@ -21,7 +21,7 @@ class GffKit(object):
             usage='''gffkit.py <command> [<args>]
 
 The commands are:
-   grep                 Filter GFF3 features based on regular expressions.
+   grep                 Filter GFF3 features based on regular expressions, including returning all children of matched features.
    sort                 **Not implemented.** Use genometools (https://github.com/genometools/genometools) with 'gt gff3 -tidy -sort -retainids'
    rc                   Update the extent of GFF3 features to their reverse complement
    offset               Shift GFF3 features by a constant offset
@@ -51,7 +51,7 @@ The commands are:
 
     def grep(self):
         parser = argparse.ArgumentParser(
-            description='Filter GFF features based on regular expressions')
+            description='Filter GFF features based on regular expressions, including returning all children of matched features.')
         # prefixing the argument with -- means it's optional
         # now that we're inside a subcommand, ignore the first
         # TWO argvs, ie the command (git) and the subcommand (commit)
