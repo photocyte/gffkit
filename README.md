@@ -1,6 +1,9 @@
 # gffkit
 A lightweight python toolkit for common manipulations on GFF3 files. Inspired by [seqkit](https://github.com/shenwei356/seqkit) (but clearly not as well written)
 
+Alternatively, you might take a look at things like the AGAT suite:
+https://agat.readthedocs.io/en/latest/why_agat.html
+
 ## Usage
 
 ```
