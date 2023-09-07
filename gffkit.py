@@ -84,69 +84,78 @@ The commands are:
         sys.stderr.write("Coverting to in-memory gffutils sqlite database.\n")
         sys.stderr.flush()
 
+        re_patterns = [ re.compile(x) for x in patterns ]
+
         db = gffutils.create_db(args.file,":memory:", force=True,merge_strategy="create_unique")
         sys.stderr.write("Done with conversion\n")
 
         ##This function doesn't mind >1 mRNA per gene
         if args.t == "gene":
             for g in db.features_of_type("gene"):
-                if (args.v == True and g.id not in patterns) or (args.v == False and g.id in patterns):
+                matches_len = 0
+                for pat_item in re_patterns:
+                    matches_len += len(re.findall(pat_item,g.id))
+                if (args.v == True and matches_len == 0) or (args.v == False and matches_len >= 1):
                     print(g)
                     for c in db.children(g.id):
                         print(c)
 
-        forbidden_genes = set()
-        forbidden_mRNAs = set()
-        genes_to_print = set()
-        mRNAs_to_print = set()
-        if args.t == "exon":
-            sys.stderr.write("Warning. The exon mode should only be used for filtering with '-v', as currently the script does not correctly resize mRNAs/genes to reduced exons)\n")
-        for e in db.features_of_type("exon"):
-            if (args.v == True and e.id not in patterns):
-                ##Print as per normal, but do it from an exon based perspective.
-                e_parent = e.attributes["Parent"][0]
-                mRNA = db[e_parent]
-                m_parent = mRNA.attributes["Parent"][0]
-                gene = db[m_parent]
-                if gene.id not in genes_to_print:
-                    genes_to_print.add(gene.id)
-                if mRNA.id not in mRNAs_to_print:
-                    mRNAs_to_print.add(mRNA.id)
 
-                if (args.v == True and e.id in patterns):
+        elif args.t == "exon":
+            forbidden_genes = set()
+            forbidden_mRNAs = set()
+            genes_to_print = set()
+            mRNAs_to_print = set()
+            sys.stderr.write("Warning. The exon mode should only be used for filtering with '-v', as currently the script does not correctly resize mRNAs/genes to reduced exons)\n")
+            for e in db.features_of_type("exon"):
+                if (args.v == True and e.id not in patterns):
+                    ##Print as per normal, but do it from an exon based perspective.
                     e_parent = e.attributes["Parent"][0]
                     mRNA = db[e_parent]
                     m_parent = mRNA.attributes["Parent"][0]
                     gene = db[m_parent]
-                    if gene.id not in forbidden_genes:
-                        forbidden_genes.add(gene.id)
-                    if mRNA.id not in forbidden_mRNAs:
-                        forbidden_mRNAs.add(mRNA.id)
+                    if gene.id not in genes_to_print:
+                        genes_to_print.add(gene.id)
+                    if mRNA.id not in mRNAs_to_print:
+                        mRNAs_to_print.add(mRNA.id)
 
-                elif (args.v == False and e.id in patterns):
-                    sys.stderr.write("Only mode '-v' is currently supported\n")
-                    break
-	##Once all the exons have been examined, print those features that are not forbidden.
-        allowed_genes = genes_to_print - forbidden_genes
-        allowed_mRNAs = mRNAs_to_print - forbidden_mRNAs
-        sys.stderr.write("Had "+str(len(genes_to_print))+" genes_to_print\n")
-        sys.stderr.write("Had "+str(len(forbidden_genes))+" forbidden_genes\n")
-        sys.stderr.write("Had "+str(len(mRNAs_to_print))+" mRNAs_to_print\n")
-        sys.stderr.write("Had "+str(len(forbidden_mRNAs))+" forbidden_mRNAs\n")
-        for g in db.features_of_type("gene"):
-            if g.id in allowed_genes:
-                print(g)
-            else:
-                continue
+                    if (args.v == True and e.id in patterns):
+                        e_parent = e.attributes["Parent"][0]
+                        mRNA = db[e_parent]
+                        m_parent = mRNA.attributes["Parent"][0]
+                        gene = db[m_parent]
+                        if gene.id not in forbidden_genes:
+                            forbidden_genes.add(gene.id)
+                        if mRNA.id not in forbidden_mRNAs:
+                            forbidden_mRNAs.add(mRNA.id)
 
-            for m in db.children(g.id,featuretype="mRNA"):
-                if m.id in allowed_mRNAs:
-                    print(m)
-                    for c in db.children(m.id):
-                        print(c)
+                    elif (args.v == False and e.id in patterns):
+                        sys.stderr.write("Only mode '-v' is currently supported\n")
+                        break
+        ##Once all the exons have been examined, print those features that are not forbidden.
+            allowed_genes = genes_to_print - forbidden_genes
+            allowed_mRNAs = mRNAs_to_print - forbidden_mRNAs
+            sys.stderr.write("Had "+str(len(genes_to_print))+" genes_to_print\n")
+            sys.stderr.write("Had "+str(len(forbidden_genes))+" forbidden_genes\n")
+            sys.stderr.write("Had "+str(len(mRNAs_to_print))+" mRNAs_to_print\n")
+            sys.stderr.write("Had "+str(len(forbidden_mRNAs))+" forbidden_mRNAs\n")
+            for g in db.features_of_type("gene"):
+                if g.id in allowed_genes:
+                    print(g)
                 else:
-                    sys.stderr.write("ERROR:This shouldn't happen.\n")
-                    exit(11)
+                    continue
+
+                for m in db.children(g.id,featuretype="mRNA"):
+                    if m.id in allowed_mRNAs:
+                        print(m)
+                        for c in db.children(m.id):
+                            print(c)
+                    else:
+                        sys.stderr.write("ERROR:This shouldn't happen.\n")
+                        exit(11)
+        else:
+            sys.stderr.write(f'Error: feature type {args.t} not (yet) supported')
+            exit(1)
     sys.stderr.write("Done.\n")
 
 ################################
